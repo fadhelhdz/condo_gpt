@@ -48,5 +48,7 @@ def process_question(prompted_question):
     for s in agent_executor.stream({"messages": HumanMessage(content=prompt)}):
         for msg in s.get("agent", {}).get ("messages", []):
             print(msg.content)
+            content.append(msg.content)
+    return content        
 
-process_question("What is the most recent sale in the database")
+# process_question("What is the most recent sale in the database") # for testing openai api
