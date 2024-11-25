@@ -1,14 +1,18 @@
 import os
 from langchain_community.utilities.sql_database import SQLDatabase
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_community.agent_toolkits import SQLDatabaseToolkit
+
+from langgraph.prebuilt import create_react_agent
 
 from prefix import SQL_PREFIX
 from boilerplate import marker_boilerplate, holding_period_boilerplate, two_bed_holding_period_boilerplate, javascript_map_boilerplate, school_marker_format_boilerplate, building_marker_format_boilerplate
 
-POSTGRES_USER = os.getenv["PG_USER"]
-POSTGRES_PASSWORD = os.getenv["PG_PASSWORD"]
-POSTGRES_PORT = os.getenv["PG_PORT"]
-POSTGRES_DB = os.getenv["PG_DB"]
+POSTGRES_USER = os.getenv("PG_USER")
+POSTGRES_PASSWORD = os.getenv("PG_PASSWORD")
+POSTGRES_PORT = os.getenv("PG_PORT")
+POSTGRES_DB = os.getenv("PG_DB")
 
 connection_string = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@localhost:{POSTGRES_PORT}/{POSTGRES_DB}"
 
@@ -26,3 +30,23 @@ prefix = SQL_PREFIX.format(
     building_marker_format_boilerplate = building_marker_format_boilerplate,
     school_marker_format_boilerplate = school_marker_format_boilerplate,
 )
+
+system_message = SystemMessage(content=prefix)
+
+toolkit = SQLDatabaseToolkit(db=db, llm=llm)
+
+tools = toolkit.get_tools()
+
+agent_executor = create_react_agent(llm, tools, messages_modifier=system_message)
+
+def process_question(prompted_question):
+
+    prompt = prompted_question
+
+    content = []
+
+    for s in agent_executor.stream({"messages": HumanMessage(content=prompt)}):
+        for msg in s.get("agent", {}).get ("messages", []):
+            print(msg.content)
+
+process_question("What is the most recent sale in the database")
