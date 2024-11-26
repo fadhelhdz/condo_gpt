@@ -39,9 +39,19 @@ tools = toolkit.get_tools()
 
 agent_executor = create_react_agent(llm, tools, messages_modifier=system_message)
 
-def process_question(prompted_question):
+def process_question(prompted_question , conversation_history):
+    context = "\n".join(
+        [f"Q: {entry['question']}\n A: {entry['answer']}"
+         for entry in conversation_history]
+    )
+    consolidated_prompt = f"""
+    Previous conversation:
+    {context}
 
-    prompt = prompted_question
+    New question: {prompted_question}
+    Please answer the new question, taking into account the context from the previous conversation if relevant.
+    """
+    prompt = consolidated_prompt if conversation_history else prompted_question
 
     content = []
 
