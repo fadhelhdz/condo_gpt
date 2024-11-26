@@ -39,6 +39,14 @@ tools = toolkit.get_tools()
 
 agent_executor = create_react_agent(llm, tools, messages_modifier=system_message)
 
+def print_sql(sql):
+    print("""
+    The SQL query is:
+          
+          {}
+
+    """.format(sql))
+
 def process_question(prompted_question , conversation_history):
     context = "\n".join(
         [f"Q: {entry['question']}\n A: {entry['answer']}"
@@ -57,6 +65,9 @@ def process_question(prompted_question , conversation_history):
 
     for s in agent_executor.stream({"messages": HumanMessage(content=prompt)}):
         for msg in s.get("agent", {}).get ("messages", []):
+            for call in msg.tool_calls:
+                if sql := call.get("args", {}).get("query", None):
+                    print(print_sql(sql))
             print(msg.content)
             content.append(msg.content)
     return content        
