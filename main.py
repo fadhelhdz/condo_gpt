@@ -2,12 +2,12 @@ import os
 from langchain_community.utilities.sql_database import SQLDatabase
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
-from langchain_community.agent_toolkits import SQLDatabaseToolkit
 
 from langgraph.prebuilt import create_react_agent
 
 from prefix import SQL_PREFIX
 from boilerplate import marker_boilerplate, holding_period_boilerplate, two_bed_holding_period_boilerplate, javascript_map_boilerplate, school_marker_format_boilerplate, building_marker_format_boilerplate
+from tools import setup_tools
 
 POSTGRES_USER = os.getenv("PG_USER")
 POSTGRES_PASSWORD = os.getenv("PG_PASSWORD")
@@ -33,9 +33,7 @@ prefix = SQL_PREFIX.format(
 
 system_message = SystemMessage(content=prefix)
 
-toolkit = SQLDatabaseToolkit(db=db, llm=llm)
-
-tools = toolkit.get_tools()
+tools = setup_tools(db, llm)
 
 agent_executor = create_react_agent(llm, tools, messages_modifier=system_message)
 
