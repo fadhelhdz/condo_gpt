@@ -1,9 +1,15 @@
 import os
+import re
+
+import markdown
+
 from langchain_community.utilities.sql_database import SQLDatabase
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from langgraph.prebuilt import create_react_agent
+
+from markupsafe import Markup
 
 from prefix import SQL_PREFIX
 from boilerplate import marker_boilerplate, holding_period_boilerplate, two_bed_holding_period_boilerplate, javascript_map_boilerplate, school_marker_format_boilerplate, building_marker_format_boilerplate
@@ -45,6 +51,24 @@ def print_sql(sql):
 
     """.format(sql))
 
+def extract_and_remove_html(text):
+    html_pattern = r"```html\s*([\s\S]*?)\s*```"
+
+    match = re.search(html_pattern, text, re.IGNORECASE)
+
+    if match:
+        html_code = match.group(1).strip()
+        text_without_html = re.sub(html_pattern, "", text, flags=re.IGNORECASE).strip()
+
+        return Markup(html_code), text_without_html
+    return None, text
+
+def process_markdown(text):
+    # Convert markdow to HTML
+    html = markdown.markdown(text, extensions=["extra", "codehilite"])
+    # Wrap the result in Markup to prevent auto-escaping
+    return Markup(html)
+
 def process_question(prompted_question , conversation_history):
     context = "\n".join(
         [f"Q: {entry['question']}\n A: {entry['answer']}"
@@ -67,7 +91,11 @@ def process_question(prompted_question , conversation_history):
                 if sql := call.get("args", {}).get("query", None):
                     print(print_sql(sql))
             print(msg.content)
-            content.append(msg.content)
+            html, stripped_text = extract_and_remove_html(msg.content)
+            content.append(process_markdown(stripped_text))
+            if html:
+                content.append(html)
+
     return content        
 
 # process_question("What is the most recent sale in the database") # for testing openai api
